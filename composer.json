@@ -1,0 +1,38 @@
+{
+    "name": "tadasei/backend-excel-utils",
+    "description": "A package that provides stub utilities for usage with laravel excel",
+	"keywords": ["laravel", "excel", "utils", "backend"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tadasei",
+            "email": "chemselhak.mahouche@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": "^8.1.0",
+        "tadasei/backend-file-management": ">=1.0.0",
+        "maatwebsite/excel": "^3.1"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0",
+        "phpstan/phpstan": "^1.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "Tadasei\\BackendExcelUtils\\": "src/"
+        }
+    },
+	"config": {
+		"sort-packages": true
+	},
+	"extra": {
+		"laravel": {
+			"providers": [
+				"Tadasei\\BackendExcelUtils\\ServiceProvider"
+			]
+		}
+	}
+}
