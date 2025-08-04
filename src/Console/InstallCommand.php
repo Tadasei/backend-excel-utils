@@ -2,6 +2,7 @@
 
 namespace Tadasei\BackendExcelUtils\Console;
 
+use Closure;
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Str;
@@ -34,82 +35,123 @@ class InstallCommand extends Command
 	 */
 	public function handle()
 	{
-		// Ensuring required directories exist
+		// Publish the scaffolding files
 
-		foreach ([app_path("Models"), app_path("Traits")] as $target_directory) {
-			if (!file_exists($target_directory)) {
-				mkdir($target_directory, recursive: true);
-			}
-		}
+		$this->publishDirectory(__DIR__ . "/../../stubs");
 
-		// Setting up file paths
-
-		// Migrations
-
-		$migrationsPaths = collect(["2024_11_18_133430_create_exports_table.php"])
-			->mapWithKeys(
-				fn(string $file_name) => [
-					__DIR__ .
-					"/../../stubs/database/migrations/$file_name" => database_path(
-						"migrations/$file_name" 
-					),
-				]
-			)
-			->all();
-
-		// Models
-
-		$modelsPaths = collect(["Export.php"])
-			->mapWithKeys(
-				fn(string $file_name) => [
-					__DIR__ .
-					"/../../stubs/app/Models/$file_name" => app_path(
-						"Models/$file_name" 
-					),
-				]
-			)
-			->all();
-
-		// Traits
-
-		$traitsPaths = collect([
-			"BoldHeadings.php",
-			"CenteredCells.php",
-			"CustomCellDataTypes.php",
-		])
-			->mapWithKeys(
-				fn(string $file_name) => [
-					__DIR__ .
-					"/../../stubs/app/Traits/$file_name" => app_path(
-						"Traits/$file_name" 
-					),
-				]
-			)
-			->all();
-
-		// Copying files
-
-		foreach (
-			[
-				// Migrations
-				...$migrationsPaths,
-
-				// Models
-				...$modelsPaths,
-
-				// Traits
-				...$traitsPaths,
-			]
-			as $sourcePath => $targetPath
-		) {
-			if (!file_exists($targetPath)) {
-				copy($sourcePath, $targetPath);
-			}
-		}
+		// Notify of completion
 
 		$this->components->info("Scaffolding complete.");
 
-		return 1;
+		return 0;
+	}
+
+	protected function publishDirectory(string $directory): void
+	{
+		$files = $this->listDirectoryFiles($directory);
+
+		// Ensuring target directories exist
+
+		$this->ensureTargetDirectoriesExist($files);
+
+		// Copying files
+
+		$this->copyFiles($files);
+	}
+
+	protected function copyFiles(array $files): void
+	{
+		collect($files)->each(function (array $file) {
+			if (!file_exists($file["target"])) {
+				copy($file["source"], $file["target"]);
+			}
+		});
+	}
+
+	protected function ensureTargetDirectoriesExist(array $files): void
+	{
+		collect($files)
+			->map(
+				fn(array $file) => str_replace(
+					"/{$file["name"]}",
+					"",
+					$file["target"]
+				)
+			)
+			->unique()
+			->each(function (string $targetDirectory) {
+				if (!file_exists($targetDirectory)) {
+					mkdir($targetDirectory, recursive: true);
+				}
+			});
+	}
+
+	protected function listDirectoryFiles(
+		string $directory,
+		?Closure $getTargetFilePath = null,
+		?string $prefix = null
+	): array {
+		$directoryMap = $this->getDirectoryMap(
+			$directory,
+			$getTargetFilePath,
+			$prefix
+		);
+
+		return $this->getDirectoryMapFiles($directoryMap);
+	}
+
+	protected function getDirectoryMapFiles(array $directoryMap): array
+	{
+		return collect($directoryMap)
+			->flatMap(
+				fn(array $item) => key_exists("map", $item)
+					? $this->getDirectoryMapFiles($item["map"])
+					: [$item]
+			)
+			->all();
+	}
+
+	protected function getDirectoryMap(
+		string $directory,
+		?Closure $getTargetFilePath = null,
+		?string $prefix = null
+	): array {
+		$prefix ??= "$directory/";
+
+		$getTargetFilePath ??= fn(string $path): string => $path;
+
+		return collect(scandir($directory))
+			->reject(fn(string $name) => in_array($name, [".", ".."]))
+			->values()
+			->map(function (string $name) use (
+				$directory,
+				$getTargetFilePath,
+				$prefix
+			) {
+				$source = "$directory/$name";
+
+				return [
+					"name" => $name,
+					"source" => $source,
+					...is_dir($source)
+						? [
+							"map" => $this->getDirectoryMap(
+								$source,
+								$getTargetFilePath,
+								$prefix
+							),
+						]
+						: [
+							"target" => $getTargetFilePath(
+								base_path(
+									str_replace($prefix, "", $directory) .
+										"/$name"
+								)
+							),
+						],
+				];
+			})
+			->all();
 	}
 
 	/**
