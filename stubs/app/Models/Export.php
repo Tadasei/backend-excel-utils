@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\ExportType;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 
 use Illuminate\Database\Eloquent\{
 	Factories\HasFactory,
 	Relations\BelongsTo,
 	Relations\MorphOne,
-	Model,
+	Model
 };
 
 class Export extends Model
@@ -36,6 +37,7 @@ class Export extends Model
 	protected function casts(): array
 	{
 		return [
+			"type" => ExportType::class,
 			"requested_at" => "datetime",
 			"processed_at" => "datetime",
 		];
