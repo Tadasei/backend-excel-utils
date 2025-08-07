@@ -12,13 +12,13 @@
     ],
     "minimum-stability": "stable",
     "require": {
-        "php": "^8.2.0",
-        "tadasei/backend-file-management": "^3.0",
+        "php": "^8.1.0",
+        "tadasei/backend-file-management": ">=1.0.0",
         "maatwebsite/excel": "^3.1"
     },
     "require-dev": {
-        "orchestra/testbench": "^10.0",
-        "phpstan/phpstan": "^2.1"
+        "orchestra/testbench": "^8.0",
+        "phpstan/phpstan": "^1.10"
     },
     "autoload": {
         "psr-4": {
